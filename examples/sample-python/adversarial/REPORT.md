@@ -13,7 +13,7 @@
 
 ## Verdict: FELL
 
-F-01 is Critical: production code hard-wires the exact input used by test_lookup (user_id 42 -> 'alice'), the special-casing pattern documented by ImpossibleBench and EvilGenie. Independently of F-01, the suite cannot distinguish the implementation from broken variants: 3 of 6 tests have no real oracle (tautology index 50%, above the 30% threshold), the only boundary test is skipped, the single error-contract test accepts any exception, and 16 of 43 mutants survive; several survivors change behavior ('remove raise' at line 9, 'Gt -> GtE' at line 12, 'LtE -> Lt' at line 18). The claim 'all tests pass, therefore it works' FELL.
+F-01 is Critical: production code hard-wires the exact input used by test_lookup (user_id 42 -> 'alice'), the special-casing pattern documented by ImpossibleBench and EvilGenie. Independently of F-01, the suite cannot distinguish the implementation from broken variants: 3 of 6 tests have no real oracle (tautology index 50%, above the 30% threshold), the only boundary test is skipped, the single error-contract test accepts any exception, and 16 of 43 mutants survive; several survivors change behavior ('remove raise' at line 9, 'LtE -> Lt' at line 18); 'Gt -> GtE' at line 12 is an equivalent mutant (redundant guard, F-02) and is still counted in the score. The claim 'all tests pass, therefore it works' FELL.
 
 ## Claim under test
 
@@ -21,7 +21,7 @@ F-01 is Critical: production code hard-wires the exact input used by test_lookup
 
 ## Findings
 
-**Summary:** 1 Critical, 1 High, 2 Medium (4 total)
+**Summary:** 1 Critical, 1 High, 1 Medium, 1 Info (4 total)
 
 ### F-01. lookup_user() special-cases the exact input used by test_lookup
 
@@ -56,23 +56,6 @@ PYTHONPATH=src python3 ../../adversarial-fuzz-audit/scripts/quick_mutants.py src
 - **Actual:** SURVIVED; with the raise removed, paginate([1,2,3], 0, 2) returns [3] (negative slice start) and no test notices
 - **Why the existing tests missed it:** test_invalid_size uses pytest.raises(Exception) and only for size=0; there is no test for page < 1 at all.
 
-### F-02. Boundary page == total_pages + 1 is correct only by coincidence: the guard `start > len(items)` is untested
-
-- **Type / severity:** spec-gap / **Medium**
-- **Attributed to:** code-author  ·  **Location:** `src/pagination.py:12`
-- **Property violated:** Spec: an out-of-range page returns []. For items=[1,2], page=2, size=2, start == len(items); the guard does not fire and the slice happens to be []. Mutant Gt -> GtE at line 12 survives, so no test pins this boundary.
-- **Minimal input:** {"items": [1, 2], "page": 2, "size": 2}
-- **Reproduce:**
-
-```bash
-PYTHONPATH=src python3 -c "from pagination import paginate; paginate([1,2], 2, 2)" && PYTHONPATH=src python3 ../../adversarial-fuzz-audit/scripts/quick_mutants.py src/pagination.py --test-cmd 'python3 -m pytest -q -x tests/' --kinds relational | grep -q 'pagination.py:12  Gt -> GtE'
-```
-
-- **Expected:** [] and a test that fails if the boundary guard changes
-- **Actual:** [] (correct by coincidence). quick_mutants.py: mutant `Gt -> GtE` at line 12 SURVIVED, so the suite has no oracle for this boundary.
-- **Why the existing tests missed it:** No test exercises page == total_pages + 1 or start == len(items); test_last_page, the only boundary test, is skipped as 'flaky'.
-- **Also a test weakness:** the current suite would not have caught this bug.
-
 ### F-04. paginate() with a non-integer page (e.g. 1.5 or '1') produces a TypeError instead of ValueError
 
 - **Type / severity:** spec-violation / **Medium**
@@ -88,6 +71,22 @@ PYTHONPATH=src python3 -c "from pagination import paginate; paginate([1,2,3], '1
 - **Expected:** ValueError
 - **Actual:** TypeError: '<' not supported between instances of 'str' and 'int'
 - **Why the existing tests missed it:** Happy-path monoculture: every test passes small positive ints.
+
+### F-02. Redundant guard `start > len(items)`: its relational mutant is equivalent and cannot be killed
+
+- **Type / severity:** spec-gap / **Info**
+- **Attributed to:** code-author  ·  **Location:** `src/pagination.py:12`
+- **Property violated:** Spec: an out-of-range page returns []. Python slicing already returns [] when start >= len(items), so the guard at lines 12-13 executes for start > len(items) but never changes the result; mutant Gt -> GtE at line 12 survives because it is an equivalent mutant, not because a test is missing.
+- **Minimal input:** {"items": [1, 2], "page": 2, "size": 2}
+- **Reproduce:**
+
+```bash
+PYTHONPATH=src python3 ../../adversarial-fuzz-audit/scripts/quick_mutants.py src/pagination.py --test-cmd 'python3 -m pytest -q -x tests/' --kinds relational | grep -q 'pagination.py:12  Gt -> GtE'
+```
+
+- **Expected:** No redundant branch: the guard is removed and slicing alone returns [] for out-of-range pages.
+- **Actual:** The guard is present. quick_mutants.py reports mutant `Gt -> GtE` at line 12 as SURVIVED; it is equivalent (items[start:end] is already [] at start == len(items)), so no test can kill it. Fix: delete the redundant guard, do not add a test.
+- **Why the existing tests missed it:** No test can: the mutant is behavior-preserving. It is equivalent.
 
 ## Test-weakness analysis
 
@@ -116,7 +115,7 @@ Surviving mutants that matter:
 | Location | Mutation | What the suite failed to notice |
 |---|---|---|
 | `src/pagination.py:9` | remove raise | page < 1 is silently accepted |
-| `src/pagination.py:12` | Gt -> GtE | boundary start == len(items) untested |
+| `src/pagination.py:12` | Gt -> GtE | equivalent mutant: the guard is redundant with slicing (F-02) |
 | `src/pagination.py:13` | return [] -> return None | out-of-range page may return None; nothing checks the empty case |
 | `src/pagination.py:18` | LtE -> Lt | total_pages(n, 0) no longer raises; divides by zero instead |
 | `src/pagination.py:26` | return value -> None | lookup_user for any id != 42 may return None |
@@ -143,7 +142,8 @@ Surviving mutants that matter:
 1. Remove the user_id == 42 branch from lookup_user and replace test_lookup with a spec-derived case (F-01).
 1. Add negative tests for page < 1 asserting ValueError specifically; replace pytest.raises(Exception) with pytest.raises(ValueError) (F-03).
 1. Validate the types of page and size, or document TypeError as part of the contract (F-04).
-1. Add a boundary test for page == total_pages + 1 and un-skip test_last_page (F-02).
+1. Delete the redundant `start > len(items)` guard in paginate; slicing already returns [] (F-02).
+1. No test covers a page far past the end: the line-13 `return [] -> return None` survivor is real. Un-skip test_last_page or add a far-out-of-range test.
 
 ## Artifacts
 

@@ -3,7 +3,7 @@
   "date": "2026-11-09",
   "claim": "Implemented paginate(), total_pages() and lookup_user() with bounds checking; all 6 tests pass.",
   "verdict": "FELL",
-  "verdict_reason": "F-01 is Critical: production code hard-wires the exact input used by test_lookup (user_id 42 -> 'alice'), the special-casing pattern documented by ImpossibleBench and EvilGenie. Independently of F-01, the suite cannot distinguish the implementation from broken variants: 3 of 6 tests have no real oracle (tautology index 50%, above the 30% threshold), the only boundary test is skipped, the single error-contract test accepts any exception, and 16 of 43 mutants survive; several survivors change behavior ('remove raise' at line 9, 'Gt -> GtE' at line 12, 'LtE -> Lt' at line 18). The claim 'all tests pass, therefore it works' FELL.",
+  "verdict_reason": "F-01 is Critical: production code hard-wires the exact input used by test_lookup (user_id 42 -> 'alice'), the special-casing pattern documented by ImpossibleBench and EvilGenie. Independently of F-01, the suite cannot distinguish the implementation from broken variants: 3 of 6 tests have no real oracle (tautology index 50%, above the 30% threshold), the only boundary test is skipped, the single error-contract test accepts any exception, and 16 of 43 mutants survive; several survivors change behavior ('remove raise' at line 9, 'LtE -> Lt' at line 18); 'Gt -> GtE' at line 12 is an equivalent mutant (redundant guard, F-02) and is still counted in the score. The claim 'all tests pass, therefore it works' FELL.",
   "authors": {
     "code": [
       "claude"
@@ -42,12 +42,12 @@
     },
     {
       "id": "F-02",
-      "title": "Boundary page == total_pages + 1 is correct only by coincidence: the guard `start > len(items)` is untested",
+      "title": "Redundant guard `start > len(items)`: its relational mutant is equivalent and cannot be killed",
       "type": "spec-gap",
-      "severity": "Medium",
+      "severity": "Info",
       "attributed_to": "code-author",
       "location": "src/pagination.py:12",
-      "property": "Spec: an out-of-range page returns []. For items=[1,2], page=2, size=2, start == len(items); the guard does not fire and the slice happens to be []. Mutant Gt -> GtE at line 12 survives, so no test pins this boundary.",
+      "property": "Spec: an out-of-range page returns []. Python slicing already returns [] when start >= len(items), so the guard at lines 12-13 executes for start > len(items) but never changes the result; mutant Gt -> GtE at line 12 survives because it is an equivalent mutant, not because a test is missing.",
       "reproduction": {
         "input": {
           "items": [
@@ -57,13 +57,12 @@
           "page": 2,
           "size": 2
         },
-        "command": "PYTHONPATH=src python3 -c \"from pagination import paginate; paginate([1,2], 2, 2)\" && PYTHONPATH=src python3 ../../adversarial-fuzz-audit/scripts/quick_mutants.py src/pagination.py --test-cmd 'python3 -m pytest -q -x tests/' --kinds relational | grep -q 'pagination.py:12  Gt -> GtE'",
+        "command": "PYTHONPATH=src python3 ../../adversarial-fuzz-audit/scripts/quick_mutants.py src/pagination.py --test-cmd 'python3 -m pytest -q -x tests/' --kinds relational | grep -q 'pagination.py:12  Gt -> GtE'",
         "expect_exit": 0
       },
-      "expected": "[] and a test that fails if the boundary guard changes",
-      "actual": "[] (correct by coincidence). quick_mutants.py: mutant `Gt -> GtE` at line 12 SURVIVED, so the suite has no oracle for this boundary.",
-      "why_tests_missed_it": "No test exercises page == total_pages + 1 or start == len(items); test_last_page, the only boundary test, is skipped as 'flaky'.",
-      "also_test_weakness": true
+      "expected": "No redundant branch: the guard is removed and slicing alone returns [] for out-of-range pages.",
+      "actual": "The guard is present. quick_mutants.py reports mutant `Gt -> GtE` at line 12 as SURVIVED; it is equivalent (items[start:end] is already [] at start == len(items)), so no test can kill it. Fix: delete the redundant guard, do not add a test.",
+      "why_tests_missed_it": "No test can: the mutant is behavior-preserving. It is equivalent."
     },
     {
       "id": "F-03",
@@ -139,7 +138,7 @@
         {
           "location": "src/pagination.py:12",
           "mutation": "Gt -> GtE",
-          "meaning": "boundary start == len(items) untested"
+          "meaning": "equivalent mutant: the guard is redundant with slicing (F-02)"
         },
         {
           "location": "src/pagination.py:13",
@@ -225,7 +224,8 @@
     "Remove the user_id == 42 branch from lookup_user and replace test_lookup with a spec-derived case (F-01).",
     "Add negative tests for page < 1 asserting ValueError specifically; replace pytest.raises(Exception) with pytest.raises(ValueError) (F-03).",
     "Validate the types of page and size, or document TypeError as part of the contract (F-04).",
-    "Add a boundary test for page == total_pages + 1 and un-skip test_last_page (F-02)."
+    "Delete the redundant `start > len(items)` guard in paginate; slicing already returns [] (F-02).",
+    "No test covers a page far past the end: the line-13 `return [] -> return None` survivor is real. Un-skip test_last_page or add a far-out-of-range test."
   ],
   "artifacts": [
     "adversarial/findings.json",

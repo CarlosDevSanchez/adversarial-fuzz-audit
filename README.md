@@ -169,6 +169,8 @@ python3 $S/report_builder.py adversarial/findings.json --verify
 
 **Cambios en 1.1.0:** `quick_mutants.py` ya no cuenta los timeouts dentro de `killed`; usa `detected` (= killed + timeout) para la puntuación.
 
+**Cambios en 1.1.1:** el filtro de integridad ya no oculta `.coveragerc` y acepta `--out` absoluto dentro del repo; `run_adversary.sh` documenta 124/142 (presupuesto excedido); el finding F-02 del ejemplo es ahora un guard redundante (mutante equivalente), no una falta de test.
+
 ## Fuentes principales
 
 - Chen et al., *Do LLM Evaluators Prefer Themselves for a Reason?*, arXiv 2504.03846 (2025)

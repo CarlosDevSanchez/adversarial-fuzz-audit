@@ -3,7 +3,7 @@ name: adversarial-fuzz-audit
 description: Independent adversarial verification of code produced by an AI coding agent (Claude Code, Codex, Gemini CLI, Copilot, Aider, Cursor, OpenCode). Establishes who wrote the code and who wrote its tests, assigns a DIFFERENT model as adversary, audits the existing tests for weak oracles, then attacks the implementation with malformed and fuzzed inputs, property-based and metamorphic checks, and mutation analysis to break the agent's "it works" claim, and delivers a report of every failure and why the claim fell. Use whenever the user wants to verify, challenge, red-team, stress, fuzz, break, audit, cross-check, or "really test" code or tests written by an agent; mentions adversarial tests, fuzzing, malformed/hostile/random input, mutation testing, edge cases, or a second opinion from another model; or distrusts tests an agent wrote for its own code, even without saying "adversarial" or "fuzz". Never let the model that wrote the code grade it unless the user explicitly decides so.
 license: MIT
 metadata:
-  version: "1.1.0"
+  version: "1.1.1"
   author: "Carlos Sánchez (CarlosDevSanchez)"
   language: "en"
   readme: "Spanish README at repository root"

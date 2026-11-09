@@ -18,7 +18,8 @@
 #   ADVERSARY_WRAPPER="docker run --rm -v $PWD:/w -w /w -e ANTHROPIC_API_KEY img"
 # (hosted agents need egress to the provider API: restrict it to that; --network none only fits local models)
 # Exit codes: 2 usage, 3 independence guard, 4 CLI missing, 5 files changed outside adversarial/
-# (post-run git check; detects, does not prevent), otherwise the agent's own exit code.
+# (post-run git check; detects, does not prevent), 124 (GNU timeout) / 142 (perl fallback) budget
+# exceeded, otherwise the agent's own exit code. --out is relative to the repo root (cwd).
 set -euo pipefail
 
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -100,7 +101,7 @@ PROMPT_FILE="$OUT/prompt-$STAMP.md"
 echo "prompt: $PROMPT_FILE  (agent=$AGENT vendor=$VENDOR author=$AUTHOR independence=$INDEPENDENCE)"
 EXTRA=${ADVERSARY_EXTRA_ARGS:-}
 
-warn_auto() { echo "warning: '$AGENT' runs with auto-approved tools (no permission gate). Prefer codex, or set ADVERSARY_WRAPPER to a network-less container." >&2; }
+warn_auto() { echo "warning: '$AGENT' runs with auto-approved tools (no permission gate). Prefer codex, or set ADVERSARY_WRAPPER to a container with egress limited to the provider API." >&2; }
 
 # ---- invocation --------------------------------------------------------------------------
 case "$AGENT" in
@@ -174,9 +175,10 @@ RC=$?
 set -e
 echo "exit=$RC" >> "$OUT/run-$STAMP.meta"
 # integrity check: files added/changed/removed during the run outside adversarial/ (detects, does not prevent)
+OUTREL="${OUT#"$PWD"/}"; OUTREL="${OUTREL#./}"; OUTREL="${OUTREL%/}/"  # absolute --out inside the repo -> relative prefix
 TOUCHED=""
 if [[ $GIT -eq 1 ]]; then
-  TOUCHED="$(diff <(printf '%s\n' "$BEFORE") <(snap) | sed -n 's/^[<>] [0-9]* [0-9]* //p' | sort -u | grep -Ev "^(adversarial/|${OUT%/}/)|(^|/)(__pycache__/|\.pytest_cache/|\.hypothesis/|\.coverage)" || true)"
+  TOUCHED="$(diff <(printf '%s\n' "$BEFORE") <(snap) | sed -n 's/^[<>] [0-9]* [0-9]* //p' | sort -u | grep -Ev "^adversarial/|(^|/)(__pycache__/|\.pytest_cache/|\.hypothesis/|\.coverage(\..*)?$)" | awk -v p="$OUTREL" 'index($0,p)!=1' || true)"
   echo "touched_outside_adversarial=$(printf '%s' "$TOUCHED" | tr '\n' ',')" >> "$OUT/run-$STAMP.meta"
 else
   echo "integrity_check=skipped-no-git" >> "$OUT/run-$STAMP.meta"
