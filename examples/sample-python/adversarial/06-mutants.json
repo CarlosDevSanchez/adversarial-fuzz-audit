@@ -1,0 +1,397 @@
+{
+  "source": "/tmp/sample/src/pagination.py",
+  "test_cmd": "python3 -m pytest -q -x tests/",
+  "score": 62.8,
+  "tried": 43,
+  "killed": 27,
+  "survived": 16,
+  "mutants": [
+    {
+      "id": 1,
+      "kind": "condition",
+      "line": 6,
+      "desc": "negate if-condition",
+      "status": "killed",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -5 +5 @@\n-    if size <= 0:\n+    if not size <= 0:\n"
+    },
+    {
+      "id": 2,
+      "kind": "relational",
+      "line": 6,
+      "desc": "LtE -> Lt",
+      "status": "killed",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -5 +5 @@\n-    if size <= 0:\n+    if size < 0:\n"
+    },
+    {
+      "id": 3,
+      "kind": "constant",
+      "line": 6,
+      "desc": "0 -> 1",
+      "status": "killed",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -5 +5 @@\n-    if size <= 0:\n+    if size <= 1:\n"
+    },
+    {
+      "id": 4,
+      "kind": "constant",
+      "line": 6,
+      "desc": "0 -> -1",
+      "status": "killed",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -5 +5 @@\n-    if size <= 0:\n+    if size <= -1:\n"
+    },
+    {
+      "id": 5,
+      "kind": "raise",
+      "line": 7,
+      "desc": "remove raise",
+      "status": "killed",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -6 +6 @@\n-        raise ValueError('size must be positive')\n+        pass\n"
+    },
+    {
+      "id": 6,
+      "kind": "constant",
+      "line": 7,
+      "desc": "'size must be positive' -> ''",
+      "status": "SURVIVED",
+      "seconds": 0.5,
+      "diff": "--- original\n+++ mutant\n@@ -6 +6 @@\n-        raise ValueError('size must be positive')\n+        raise ValueError('')\n"
+    },
+    {
+      "id": 7,
+      "kind": "condition",
+      "line": 8,
+      "desc": "negate if-condition",
+      "status": "killed",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -7 +7 @@\n-    if page < 1:\n+    if not page < 1:\n"
+    },
+    {
+      "id": 8,
+      "kind": "relational",
+      "line": 8,
+      "desc": "Lt -> LtE",
+      "status": "killed",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -7 +7 @@\n-    if page < 1:\n+    if page <= 1:\n"
+    },
+    {
+      "id": 9,
+      "kind": "constant",
+      "line": 8,
+      "desc": "1 -> 2",
+      "status": "killed",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -7 +7 @@\n-    if page < 1:\n+    if page < 2:\n"
+    },
+    {
+      "id": 10,
+      "kind": "constant",
+      "line": 8,
+      "desc": "1 -> 0",
+      "status": "SURVIVED",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -7 +7 @@\n-    if page < 1:\n+    if page < 0:\n"
+    },
+    {
+      "id": 11,
+      "kind": "raise",
+      "line": 9,
+      "desc": "remove raise",
+      "status": "SURVIVED",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -8 +8 @@\n-        raise ValueError('page must be >= 1')\n+        pass\n"
+    },
+    {
+      "id": 12,
+      "kind": "constant",
+      "line": 9,
+      "desc": "'page must be >= 1' -> ''",
+      "status": "SURVIVED",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -8 +8 @@\n-        raise ValueError('page must be >= 1')\n+        raise ValueError('')\n"
+    },
+    {
+      "id": 13,
+      "kind": "arithmetic",
+      "line": 10,
+      "desc": "Mult -> FloorDiv",
+      "status": "SURVIVED",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -9 +9 @@\n-    start = (page - 1) * size\n+    start = (page - 1) // size\n"
+    },
+    {
+      "id": 14,
+      "kind": "arithmetic",
+      "line": 10,
+      "desc": "Sub -> Add",
+      "status": "killed",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -9 +9 @@\n-    start = (page - 1) * size\n+    start = (page + 1) * size\n"
+    },
+    {
+      "id": 15,
+      "kind": "constant",
+      "line": 10,
+      "desc": "1 -> 2",
+      "status": "killed",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -9 +9 @@\n-    start = (page - 1) * size\n+    start = (page - 2) * size\n"
+    },
+    {
+      "id": 16,
+      "kind": "constant",
+      "line": 10,
+      "desc": "1 -> 0",
+      "status": "killed",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -9 +9 @@\n-    start = (page - 1) * size\n+    start = (page - 0) * size\n"
+    },
+    {
+      "id": 17,
+      "kind": "arithmetic",
+      "line": 11,
+      "desc": "Add -> Sub",
+      "status": "killed",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -10 +10 @@\n-    end = start + size\n+    end = start - size\n"
+    },
+    {
+      "id": 18,
+      "kind": "condition",
+      "line": 12,
+      "desc": "negate if-condition",
+      "status": "killed",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -11 +11 @@\n-    if start > len(items):\n+    if not start > len(items):\n"
+    },
+    {
+      "id": 19,
+      "kind": "relational",
+      "line": 12,
+      "desc": "Gt -> GtE",
+      "status": "SURVIVED",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -11 +11 @@\n-    if start > len(items):\n+    if start >= len(items):\n"
+    },
+    {
+      "id": 20,
+      "kind": "return",
+      "line": 13,
+      "desc": "return value -> None",
+      "status": "SURVIVED",
+      "seconds": 0.5,
+      "diff": "--- original\n+++ mutant\n@@ -12 +12 @@\n-        return []\n+        return None\n"
+    },
+    {
+      "id": 21,
+      "kind": "return",
+      "line": 14,
+      "desc": "return value -> None",
+      "status": "killed",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -13 +13 @@\n-    return items[start:end]\n+    return None\n"
+    },
+    {
+      "id": 22,
+      "kind": "boundary",
+      "line": 14,
+      "desc": "slice lower + 1",
+      "status": "killed",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -13 +13 @@\n-    return items[start:end]\n+    return items[start + 1:end]\n"
+    },
+    {
+      "id": 23,
+      "kind": "boundary",
+      "line": 14,
+      "desc": "slice upper + 1",
+      "status": "killed",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -13 +13 @@\n-    return items[start:end]\n+    return items[start:end + 1]\n"
+    },
+    {
+      "id": 24,
+      "kind": "condition",
+      "line": 18,
+      "desc": "negate if-condition",
+      "status": "killed",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -16 +16 @@\n-    if size <= 0:\n+    if not size <= 0:\n"
+    },
+    {
+      "id": 25,
+      "kind": "relational",
+      "line": 18,
+      "desc": "LtE -> Lt",
+      "status": "SURVIVED",
+      "seconds": 0.6,
+      "diff": "--- original\n+++ mutant\n@@ -16 +16 @@\n-    if size <= 0:\n+    if size < 0:\n"
+    },
+    {
+      "id": 26,
+      "kind": "constant",
+      "line": 18,
+      "desc": "0 -> 1",
+      "status": "SURVIVED",
+      "seconds": 0.6,
+      "diff": "--- original\n+++ mutant\n@@ -16 +16 @@\n-    if size <= 0:\n+    if size <= 1:\n"
+    },
+    {
+      "id": 27,
+      "kind": "constant",
+      "line": 18,
+      "desc": "0 -> -1",
+      "status": "SURVIVED",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -16 +16 @@\n-    if size <= 0:\n+    if size <= -1:\n"
+    },
+    {
+      "id": 28,
+      "kind": "raise",
+      "line": 19,
+      "desc": "remove raise",
+      "status": "SURVIVED",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -17 +17 @@\n-        raise ValueError('size must be positive')\n+        pass\n"
+    },
+    {
+      "id": 29,
+      "kind": "constant",
+      "line": 19,
+      "desc": "'size must be positive' -> ''",
+      "status": "SURVIVED",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -17 +17 @@\n-        raise ValueError('size must be positive')\n+        raise ValueError('')\n"
+    },
+    {
+      "id": 30,
+      "kind": "return",
+      "line": 20,
+      "desc": "return value -> None",
+      "status": "killed",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -18 +18 @@\n-    return (n_items + size - 1) // size\n+    return None\n"
+    },
+    {
+      "id": 31,
+      "kind": "arithmetic",
+      "line": 20,
+      "desc": "FloorDiv -> Mult",
+      "status": "killed",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -18 +18 @@\n-    return (n_items + size - 1) // size\n+    return (n_items + size - 1) * size\n"
+    },
+    {
+      "id": 32,
+      "kind": "arithmetic",
+      "line": 20,
+      "desc": "Sub -> Add",
+      "status": "killed",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -18 +18 @@\n-    return (n_items + size - 1) // size\n+    return (n_items + size + 1) // size\n"
+    },
+    {
+      "id": 33,
+      "kind": "arithmetic",
+      "line": 20,
+      "desc": "Add -> Sub",
+      "status": "killed",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -18 +18 @@\n-    return (n_items + size - 1) // size\n+    return (n_items - size - 1) // size\n"
+    },
+    {
+      "id": 34,
+      "kind": "constant",
+      "line": 20,
+      "desc": "1 -> 2",
+      "status": "killed",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -18 +18 @@\n-    return (n_items + size - 1) // size\n+    return (n_items + size - 2) // size\n"
+    },
+    {
+      "id": 35,
+      "kind": "constant",
+      "line": 20,
+      "desc": "1 -> 0",
+      "status": "SURVIVED",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -18 +18 @@\n-    return (n_items + size - 1) // size\n+    return (n_items + size - 0) // size\n"
+    },
+    {
+      "id": 36,
+      "kind": "condition",
+      "line": 24,
+      "desc": "negate if-condition",
+      "status": "killed",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -21 +21 @@\n-    if user_id == 42:\n+    if not user_id == 42:\n"
+    },
+    {
+      "id": 37,
+      "kind": "relational",
+      "line": 24,
+      "desc": "Eq -> NotEq",
+      "status": "killed",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -21 +21 @@\n-    if user_id == 42:\n+    if user_id != 42:\n"
+    },
+    {
+      "id": 38,
+      "kind": "constant",
+      "line": 24,
+      "desc": "42 -> 43",
+      "status": "killed",
+      "seconds": 0.3,
+      "diff": "--- original\n+++ mutant\n@@ -21 +21 @@\n-    if user_id == 42:\n+    if user_id == 43:\n"
+    },
+    {
+      "id": 39,
+      "kind": "constant",
+      "line": 24,
+      "desc": "42 -> 41",
+      "status": "killed",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -21 +21 @@\n-    if user_id == 42:\n+    if user_id == 41:\n"
+    },
+    {
+      "id": 40,
+      "kind": "constant",
+      "line": 25,
+      "desc": "'alice' -> ''",
+      "status": "killed",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -22 +22 @@\n-        return 'alice'\n+        return ''\n"
+    },
+    {
+      "id": 41,
+      "kind": "return",
+      "line": 26,
+      "desc": "return value -> None",
+      "status": "SURVIVED",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -23 +23 @@\n-    return 'user-%d' % user_id+    return None"
+    },
+    {
+      "id": 42,
+      "kind": "arithmetic",
+      "line": 26,
+      "desc": "Mod -> FloorDiv",
+      "status": "SURVIVED",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -23 +23 @@\n-    return 'user-%d' % user_id+    return 'user-%d' // user_id"
+    },
+    {
+      "id": 43,
+      "kind": "constant",
+      "line": 26,
+      "desc": "'user-%d' -> ''",
+      "status": "SURVIVED",
+      "seconds": 0.4,
+      "diff": "--- original\n+++ mutant\n@@ -23 +23 @@\n-    return 'user-%d' % user_id+    return '' % user_id"
+    }
+  ]
+}

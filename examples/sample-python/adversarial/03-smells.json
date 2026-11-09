@@ -1,0 +1,47 @@
+{
+  "files": [
+    {
+      "file": "/tmp/sample/tests/test_pagination.py",
+      "tests": 7,
+      "assert_lines": 5,
+      "mock_lines": 0,
+      "oracle_strength": 31,
+      "smells": {
+        "no_assert_tests": [
+          "test_invalid_size",
+          "test_smoke"
+        ],
+        "existence_only": [
+          {
+            "line": 11,
+            "text": "assert result is not None"
+          }
+        ],
+        "broad_exception": [
+          {
+            "line": 19,
+            "text": "with pytest.raises(Exception):"
+          }
+        ],
+        "skipped": [
+          {
+            "line": 27,
+            "text": "@pytest.mark.skip(reason=\"flaky\")"
+          }
+        ]
+      },
+      "counts": {
+        "no_assert_tests": 2,
+        "existence_only": 1,
+        "broad_exception": 1,
+        "skipped": 1
+      }
+    }
+  ],
+  "totals": {
+    "no_assert_tests": 2,
+    "existence_only": 1,
+    "broad_exception": 1,
+    "skipped": 1
+  }
+}

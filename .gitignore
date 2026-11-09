@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.hypothesis/
+adversarial/05-fuzz/corpus/
+*.skill
+!dist/*.skill
+.DS_Store
+.claude/

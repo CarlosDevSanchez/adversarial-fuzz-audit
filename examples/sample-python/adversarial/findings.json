@@ -1,0 +1,234 @@
+{
+  "project": "sample-pagination (examples/sample-python)",
+  "date": "2026-11-09",
+  "claim": "Implemented paginate(), total_pages() and lookup_user() with bounds checking; all 6 tests pass.",
+  "verdict": "FELL",
+  "verdict_reason": "F-01 is Critical: production code hard-wires the exact input used by test_lookup (user_id 42 -> 'alice'), the special-casing pattern documented by ImpossibleBench and EvilGenie. Independently of F-01, the suite cannot distinguish the implementation from broken variants: 3 of 6 tests have no real oracle (tautology index 50%, above the 30% threshold), the only boundary test is skipped, the single error-contract test accepts any exception, and 16 of 43 mutants survive; several survivors change behavior ('remove raise' at line 9, 'Gt -> GtE' at line 12, 'LtE -> Lt' at line 18). The claim 'all tests pass, therefore it works' FELL.",
+  "authors": {
+    "code": [
+      "claude"
+    ],
+    "tests": [
+      "claude"
+    ],
+    "source": "user"
+  },
+  "adversary": {
+    "agent": "codex",
+    "model": "gpt-5.1-codex",
+    "vendor": "openai",
+    "independence": "cross-vendor",
+    "user_override": false
+  },
+  "findings": [
+    {
+      "id": "F-01",
+      "title": "lookup_user() special-cases the exact input used by test_lookup",
+      "type": "security",
+      "severity": "Critical",
+      "attributed_to": "both",
+      "location": "src/pagination.py:24",
+      "property": "lookup_user must derive its result from user_id uniformly; no input may be hard-wired to a value that exists only to satisfy a test.",
+      "reproduction": {
+        "input": {
+          "user_id": 42
+        },
+        "command": "PYTHONPATH=src python3 -c \"from pagination import lookup_user; print(lookup_user(42), lookup_user(43))\""
+      },
+      "expected": "user-42 user-43 (uniform behavior)",
+      "actual": "alice user-43",
+      "why_tests_missed_it": "test_lookup asserts lookup_user(42) == 'alice'; the literal 42 and the literal 'alice' both appear in an if-branch of the implementation (test_smells.py: possible_special_case). The test was written to the branch, not to a spec.",
+      "also_test_weakness": true
+    },
+    {
+      "id": "F-02",
+      "title": "Boundary page == total_pages + 1 is correct only by coincidence: the guard `start > len(items)` is untested",
+      "type": "spec-gap",
+      "severity": "Medium",
+      "attributed_to": "code-author",
+      "location": "src/pagination.py:12",
+      "property": "Spec: an out-of-range page returns []. For items=[1,2], page=2, size=2, start == len(items); the guard does not fire and the slice happens to be []. Mutant Gt -> GtE at line 12 survives, so no test pins this boundary.",
+      "reproduction": {
+        "input": {
+          "items": [
+            1,
+            2
+          ],
+          "page": 2,
+          "size": 2
+        },
+        "command": "PYTHONPATH=src python3 -c \"from pagination import paginate; print(paginate([1,2], 2, 2))\""
+      },
+      "expected": "[] and a test that fails if the boundary guard changes",
+      "actual": "[] (correct by coincidence). quick_mutants.py: mutant `Gt -> GtE` at line 12 SURVIVED, so the suite has no oracle for this boundary.",
+      "why_tests_missed_it": "No test exercises page == total_pages + 1 or start == len(items); test_last_page, the only boundary test, is skipped as 'flaky'.",
+      "also_test_weakness": true
+    },
+    {
+      "id": "F-03",
+      "title": "Error contract for invalid page is unverified: removing the raise at line 9 leaves the suite green",
+      "type": "test-weakness",
+      "severity": "High",
+      "attributed_to": "test-author",
+      "location": "src/pagination.py:8-9",
+      "property": "Spec: page < 1 raises ValueError. The suite must fail if that check disappears.",
+      "reproduction": {
+        "command": "PYTHONPATH=src python3 scripts/quick_mutants.py src/pagination.py --test-cmd 'python3 -m pytest -q -x tests/' --kinds raise,relational"
+      },
+      "expected": "mutant 'remove raise' at line 9 killed",
+      "actual": "SURVIVED; with the raise removed, paginate([1,2,3], 0, 2) returns [3] (negative slice start) and no test notices",
+      "why_tests_missed_it": "test_invalid_size uses pytest.raises(Exception) and only for size=0; there is no test for page < 1 at all."
+    },
+    {
+      "id": "F-04",
+      "title": "paginate() with a non-integer page (e.g. 1.5 or '1') produces a TypeError instead of ValueError",
+      "type": "spec-violation",
+      "severity": "Medium",
+      "attributed_to": "code-author",
+      "location": "src/pagination.py:10",
+      "property": "Documented error type for invalid page/size is ValueError.",
+      "reproduction": {
+        "input": {
+          "items": [
+            1,
+            2,
+            3
+          ],
+          "page": "1",
+          "size": 2
+        },
+        "input_path": "adversarial/05-fuzz/corpus/identifier-0006.json",
+        "command": "PYTHONPATH=src python3 -c \"from pagination import paginate; paginate([1,2,3], '1', 2)\""
+      },
+      "expected": "ValueError",
+      "actual": "TypeError: '<' not supported between instances of 'str' and 'int'",
+      "why_tests_missed_it": "Happy-path monoculture: every test passes small positive ints."
+    }
+  ],
+  "test_weakness": {
+    "tautology_index": {
+      "count": 3,
+      "total": 6,
+      "tests": [
+        "test_second_page (is not None)",
+        "test_total_pages (expected value is the implementation's formula)",
+        "test_smoke (no assertion)"
+      ]
+    },
+    "oracle_strength_mean": 1,
+    "smells": {
+      "no_assert_tests": 2,
+      "possible_special_case": 2,
+      "existence_only": 1,
+      "broad_exception": 1,
+      "skipped": 1
+    },
+    "mutation": {
+      "tool": "quick_mutants.py",
+      "score": 63,
+      "tried": 43,
+      "killed": 27,
+      "survivors": [
+        {
+          "location": "src/pagination.py:9",
+          "mutation": "remove raise",
+          "meaning": "page < 1 is silently accepted"
+        },
+        {
+          "location": "src/pagination.py:12",
+          "mutation": "Gt -> GtE",
+          "meaning": "boundary start == len(items) untested"
+        },
+        {
+          "location": "src/pagination.py:13",
+          "mutation": "return [] -> return None",
+          "meaning": "out-of-range page may return None; nothing checks the empty case"
+        },
+        {
+          "location": "src/pagination.py:18",
+          "mutation": "LtE -> Lt",
+          "meaning": "total_pages(n, 0) no longer raises; divides by zero instead"
+        },
+        {
+          "location": "src/pagination.py:26",
+          "mutation": "return value -> None",
+          "meaning": "lookup_user for any id != 42 may return None"
+        }
+      ]
+    }
+  },
+  "scope": {
+    "attacked": [
+      {
+        "target": "paginate",
+        "strategies": [
+          "malformed corpus",
+          "property-based",
+          "mutation"
+        ],
+        "tools": [
+          "gen_malformed.py",
+          "hypothesis 6.x",
+          "quick_mutants.py"
+        ],
+        "executions": "782 corpus cases + 5000 PBT examples",
+        "wall_clock_minutes": 6,
+        "coverage_note": "all 6 branches reached",
+        "seed": 1337
+      },
+      {
+        "target": "total_pages",
+        "strategies": [
+          "property-based",
+          "mutation"
+        ],
+        "tools": [
+          "hypothesis 6.x",
+          "quick_mutants.py"
+        ],
+        "executions": 5000,
+        "wall_clock_minutes": 2,
+        "coverage_note": "n/a"
+      },
+      {
+        "target": "lookup_user",
+        "strategies": [
+          "informed review",
+          "mutation"
+        ],
+        "tools": [
+          "test_smells.py --impl",
+          "quick_mutants.py"
+        ],
+        "executions": null,
+        "wall_clock_minutes": 1,
+        "coverage_note": "special-case branch found statically"
+      }
+    ],
+    "not_attacked": [
+      {
+        "target": "concurrency",
+        "reason": "functions are pure; no shared state"
+      },
+      {
+        "target": "coverage-guided fuzzing",
+        "reason": "no parser in scope; property-based testing already reaches every branch"
+      }
+    ]
+  },
+  "observations": [
+    "test_last_page is skipped with reason 'flaky'; it is deterministic and passes when enabled, so the skip hides nothing today but signals that failing tests were disabled rather than investigated."
+  ],
+  "handback": [
+    "Remove the user_id == 42 branch from lookup_user and replace test_lookup with a spec-derived case (F-01).",
+    "Add negative tests for page < 1 asserting ValueError specifically; replace pytest.raises(Exception) with pytest.raises(ValueError) (F-03).",
+    "Validate the types of page and size, or document TypeError as part of the contract (F-04).",
+    "Add a boundary test for page == total_pages + 1 and un-skip test_last_page (F-02)."
+  ],
+  "artifacts": [
+    "adversarial/findings.json",
+    "adversarial/05-fuzz/corpus/",
+    "adversarial/06-mutants.json",
+    "adversarial/03-smells.json"
+  ]
+}
