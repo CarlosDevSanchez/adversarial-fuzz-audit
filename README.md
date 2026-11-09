@@ -140,7 +140,11 @@ python3 $S/test_smells.py tests --impl src --json adversarial/03-smells.json
 python3 $S/gen_malformed.py --kind all --out adversarial/05-fuzz/corpus
 python3 $S/quick_mutants.py src/modulo.py --test-cmd "python3 -m pytest -q -x tests/" --json adversarial/06-mutants.json
 $S/run_adversary.sh --agent codex --author anthropic --target src/modulo.py --spec adversarial/00-intake.md
+# opcional: aislar al adversario con ADVERSARY_WRAPPER (contenedor con salida limitada a la API del proveedor)
+ADVERSARY_WRAPPER="docker run --rm -v $PWD:/w -w /w -e ANTHROPIC_API_KEY img" $S/run_adversary.sh --agent codex --author anthropic --target src/modulo.py
 python3 $S/report_builder.py adversarial/findings.json --out adversarial/REPORT.md
+# --verify re-ejecuta cada reproduction.command (debe salir con código != 0 mientras el defecto exista)
+python3 $S/report_builder.py adversarial/findings.json --verify
 ```
 
 ## Ejemplo
@@ -153,6 +157,17 @@ python3 $S/report_builder.py adversarial/findings.json --out adversarial/REPORT.
 - No fuzzea servicios en producción ni APIs de terceros. Solo código propio, en sandbox, con límites de recursos.
 - No promete corrección. Un veredicto `HELD` significa "no se pudo falsar dentro del alcance y el presupuesto declarados".
 - No ejecuta al autor como adversario por su cuenta. Esa decisión es siempre del usuario y queda registrada.
+
+## Limitaciones y modelo de amenazas
+
+- La procedencia desde git es una heurística, no una prueba de quién escribió qué.
+- La independencia del adversario se basa en el agente/modelo declarado, no en una prueba criptográfica (`unverified-provider` para CLIs multi-proveedor sin `--model`).
+- El código objetivo y la especificación se envían al proveedor elegido: no usar con código que no puedas compartir; deja secretos como `.env` fuera del árbol o del alcance.
+- Los comandos de test y fuzzing se ejecutan con los permisos del usuario y están pensados para código propio. Para árboles no confiables, usa `ADVERSARY_WRAPPER` con un contenedor cuya salida de red se limite a la API del proveedor (sin red solo para modelos locales) y con las credenciales pasadas al contenedor. `--verify` ejecuta en el host los `reproduction.command` escritos por el adversario: revísalos antes.
+- Los generadores de corpus no son motores de fuzzing; el arnés lo construye el agente.
+- La comprobación de integridad posterior a la ejecución detecta, pero no impide, ediciones fuera de `adversarial/`. `gemini`, `copilot` y `aider` aprueban herramientas automáticamente: preferir codex o un wrapper.
+
+**Cambios en 1.1.0:** `quick_mutants.py` ya no cuenta los timeouts dentro de `killed`; usa `detected` (= killed + timeout) para la puntuación.
 
 ## Fuentes principales
 

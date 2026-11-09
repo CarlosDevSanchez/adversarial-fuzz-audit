@@ -32,7 +32,7 @@ F-01 is Critical: production code hard-wires the exact input used by test_lookup
 - **Reproduce:**
 
 ```bash
-PYTHONPATH=src python3 -c "from pagination import lookup_user; print(lookup_user(42), lookup_user(43))"
+PYTHONPATH=src python3 -c "from pagination import lookup_user; assert lookup_user(42) == 'user-42'"
 ```
 
 - **Expected:** user-42 user-43 (uniform behavior)
@@ -49,7 +49,7 @@ PYTHONPATH=src python3 -c "from pagination import lookup_user; print(lookup_user
 - **Reproduce:**
 
 ```bash
-PYTHONPATH=src python3 scripts/quick_mutants.py src/pagination.py --test-cmd 'python3 -m pytest -q -x tests/' --kinds raise,relational
+PYTHONPATH=src python3 ../../adversarial-fuzz-audit/scripts/quick_mutants.py src/pagination.py --test-cmd 'python3 -m pytest -q -x tests/' --kinds raise | grep -q 'SURVIVED  pagination.py:9  remove raise'
 ```
 
 - **Expected:** mutant 'remove raise' at line 9 killed
@@ -65,7 +65,7 @@ PYTHONPATH=src python3 scripts/quick_mutants.py src/pagination.py --test-cmd 'py
 - **Reproduce:**
 
 ```bash
-PYTHONPATH=src python3 -c "from pagination import paginate; print(paginate([1,2], 2, 2))"
+PYTHONPATH=src python3 -c "from pagination import paginate; paginate([1,2], 2, 2)" && PYTHONPATH=src python3 ../../adversarial-fuzz-audit/scripts/quick_mutants.py src/pagination.py --test-cmd 'python3 -m pytest -q -x tests/' --kinds relational | grep -q 'pagination.py:12  Gt -> GtE'
 ```
 
 - **Expected:** [] and a test that fails if the boundary guard changes

@@ -256,15 +256,17 @@ def main() -> int:
 
     tried = [r for r in results if r["status"] in ("SURVIVED", "killed", "timeout")]
     survived = [r for r in results if r["status"] == "SURVIVED"]
-    killed = len([r for r in tried if r["status"] in ("killed", "timeout")])
-    score = (killed / len(tried) * 100) if tried else 0
-    print(f"\nmutation score: {killed}/{len(tried)} killed = {score:.0f}%   survivors: {len(survived)}")
+    killed = len([r for r in tried if r["status"] == "killed"])
+    timeouts = len([r for r in tried if r["status"] == "timeout"])
+    detected = killed + timeouts  # mutmut/Stryker/PIT convention: a timeout counts as detected
+    score = (detected / len(tried) * 100) if tried else 0
+    print(f"\nmutation score: {detected}/{len(tried)} detected = {score:.0f}% (killed {killed}, timeout {timeouts}; timeouts count as detected)   survivors: {len(survived)}")
     for r in survived:
         print(f"\n--- SURVIVED  {src.name}:{r['line']}  {r['desc']}\n{r['diff']}")
     if args.json_out:
         Path(args.json_out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.json_out).write_text(json.dumps({"source": str(src), "test_cmd": args.test_cmd, "score": round(score, 1),
-                                                   "tried": len(tried), "killed": killed, "survived": len(survived), "mutants": results}, indent=2))
+                                                   "tried": len(tried), "killed": killed, "timeout": timeouts, "detected": detected, "survived": len(survived), "mutants": results}, indent=2))
     return 0
 
 

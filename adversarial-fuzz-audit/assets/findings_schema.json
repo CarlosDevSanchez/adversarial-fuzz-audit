@@ -47,7 +47,8 @@
             "properties": {
               "input": {"description": "Inline minimal input or a path under adversarial/"},
               "input_path": {"type": "string"},
-              "command": {"type": "string"},
+              "command": {"type": "string", "description": "Shell command run from the project root. Convention: it must exit NON-ZERO while the defect is present (like a failing test); `report_builder.py --verify` labels exit 0 as NOT REPRODUCED."},
+              "expect_exit": {"type": "integer", "description": "Optional. Exact exit code that signals the defect, when it is not simply non-zero (e.g. 0 for a command whose exit 0 means the defect is still there, such as `... | grep -q SURVIVED`)."},
               "seed": {"type": ["string", "integer", "null"]}
             }
           },

@@ -75,3 +75,12 @@ python3 scripts/report_builder.py adversarial/findings.json \
 Plain, specific, verifiable. No adjectives about the author ("sloppy"), only facts about
 the artifact ("`test_lookup` passes with the implementation replaced by `return 'alice'`").
 A finding the reader can reproduce in under a minute is worth ten they must trust.
+
+## Reproduction command convention
+
+`reproduction.command` must exit **non-zero while the defect is present**, like a failing
+test (wrap demonstrations in an `assert`). If the defect is signalled by another exit code,
+set `reproduction.expect_exit` to it. `report_builder.py findings.json --verify
+[--verify-timeout 60]` re-runs every command from the current directory, records exit code
+and output tail in the report, labels exit 0 as **NOT REPRODUCED**, and exits 3 so a stale
+or wrong finding cannot ship silently. Commands run with your permissions.

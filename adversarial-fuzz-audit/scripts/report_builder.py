@@ -8,12 +8,22 @@ to hand-edit afterwards are left in place.
 
 Usage:
     report_builder.py adversarial/findings.json [--template assets/report_template.md] [--out adversarial/REPORT.md] [--validate-only]
+                          [--verify [--verify-timeout 60]]
+
+--verify re-runs every finding's reproduction.command (shell, cwd = current directory) and
+records the exit code and an output tail in the report. Convention: the command must exit
+NON-ZERO while the defect is present (like a failing test). Exit 0 is reported as
+"NOT REPRODUCED" and this script exits 3. If a command legitimately signals the defect
+with another exit code, set reproduction.expect_exit (integer) and that exact code is
+required instead. A timeout counts as reproduced only for type hang-or-resource.
+Commands run with your permissions: only verify findings you trust.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import re
+import subprocess
 import sys
 from datetime import date
 from pathlib import Path
@@ -66,6 +76,8 @@ def validate(doc: dict) -> list[str]:
             errs.append(f"{where}.attributed_to must be one of {sorted(ATTRIB)}")
         if not isinstance(f.get("reproduction"), dict) or not f["reproduction"].get("command"):
             errs.append(f"{where}.reproduction.command is required (a finding must be reproducible)")
+        elif "expect_exit" in f["reproduction"] and type(f["reproduction"]["expect_exit"]) is not int:
+            errs.append(f"{where}.reproduction.expect_exit must be an integer")
     sc = doc.get("scope", {})
     for k in ("attacked", "not_attacked"):
         if not isinstance(sc.get(k), list):
@@ -77,6 +89,28 @@ def validate(doc: dict) -> list[str]:
     if doc.get("verdict") == "FELL" and not doc.get("findings") and not doc.get("test_weakness"):
         errs.append("verdict FELL needs at least one finding or a test_weakness section that justifies it")
     return errs
+
+
+def verify_finding(f: dict, timeout: int) -> dict:
+    rep = f["reproduction"]
+    want = rep.get("expect_exit")
+    try:
+        p = subprocess.run(rep["command"], shell=True, capture_output=True, text=True, timeout=timeout)
+        code, tail, timed_out = p.returncode, (p.stdout + p.stderr)[-400:].strip(), False
+    except subprocess.TimeoutExpired:
+        code, tail, timed_out = None, f"(timed out after {timeout}s)", True
+    if timed_out:
+        ok = f.get("type") == "hang-or-resource"
+    else:
+        ok = (code == want) if want is not None else code != 0
+    return {"exit": code, "tail": tail, "timed_out": timed_out, "expect_exit": want, "reproduced": ok}
+
+
+def md_verify(v: dict) -> list[str]:
+    label = "REPRODUCED" if v["reproduced"] else "NOT REPRODUCED"
+    code = "timeout" if v["timed_out"] else f"exit {v['exit']}"
+    want = f"expected exit {v['expect_exit']}" if v["expect_exit"] is not None else "non-zero expected"
+    return [f"- **Verification ({label}):** {code} ({want})", "", "```text", v["tail"] or "(no output)", "```", ""]
 
 
 def md_findings(findings: list[dict]) -> str:
@@ -102,6 +136,8 @@ def md_findings(findings: list[dict]) -> str:
             f"- **Expected:** {f['expected']}",
             f"- **Actual:** {f['actual']}",
         ]
+        if f.get("_verify"):
+            lines += [""] + md_verify(f["_verify"])
         if f.get("why_tests_missed_it"):
             lines.append(f"- **Why the existing tests missed it:** {f['why_tests_missed_it']}")
         if f.get("also_test_weakness"):
@@ -199,6 +235,8 @@ def main() -> int:
     ap.add_argument("--template", default=str(ASSETS / "report_template.md"))
     ap.add_argument("--out", default=None, help="default: REPORT.md next to findings.json")
     ap.add_argument("--validate-only", action="store_true")
+    ap.add_argument("--verify", action="store_true", help="re-run each reproduction.command and record the evidence")
+    ap.add_argument("--verify-timeout", type=int, default=60, help="seconds per reproduction command (default 60)")
     args = ap.parse_args()
     doc = json.loads(Path(args.findings).read_text(encoding="utf-8"))
     errs = validate(doc)
@@ -208,9 +246,19 @@ def main() -> int:
     print(f"findings.json valid: {len(doc.get('findings', []))} findings, verdict {doc['verdict']}")
     if args.validate_only:
         return 0
+    failed = []
+    if args.verify:
+        for f in doc.get("findings", []):
+            f["_verify"] = verify_finding(f, args.verify_timeout)
+            print(f"verify {f['id']}: {'REPRODUCED' if f['_verify']['reproduced'] else 'NOT REPRODUCED'} ({'timeout' if f['_verify']['timed_out'] else 'exit ' + str(f['_verify']['exit'])})")
+            if not f["_verify"]["reproduced"]:
+                failed.append(f["id"])
     out = Path(args.out) if args.out else Path(args.findings).parent / "REPORT.md"
     out.write_text(render(doc, Path(args.template).read_text(encoding="utf-8")), encoding="utf-8")
     print(f"wrote {out}")
+    if failed:
+        print(f"NOT REPRODUCED: {', '.join(failed)}", file=sys.stderr)
+        return 3
     return 0
 
 

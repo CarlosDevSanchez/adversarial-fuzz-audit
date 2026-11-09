@@ -3,7 +3,7 @@ name: adversarial-fuzz-audit
 description: Independent adversarial verification of code produced by an AI coding agent (Claude Code, Codex, Gemini CLI, Copilot, Aider, Cursor, OpenCode). Establishes who wrote the code and who wrote its tests, assigns a DIFFERENT model as adversary, audits the existing tests for weak oracles, then attacks the implementation with malformed and fuzzed inputs, property-based and metamorphic checks, and mutation analysis to break the agent's "it works" claim, and delivers a report of every failure and why the claim fell. Use whenever the user wants to verify, challenge, red-team, stress, fuzz, break, audit, cross-check, or "really test" code or tests written by an agent; mentions adversarial tests, fuzzing, malformed/hostile/random input, mutation testing, edge cases, or a second opinion from another model; or distrusts tests an agent wrote for its own code, even without saying "adversarial" or "fuzz". Never let the model that wrote the code grade it unless the user explicitly decides so.
 license: MIT
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   author: "Carlos Sánchez (CarlosDevSanchez)"
   language: "en"
   readme: "Spanish README at repository root"
@@ -244,13 +244,22 @@ because the fix looks easy.
 |---|---|
 | `scripts/detect_agents.py` | List agent CLIs, API keys, current model; JSON output |
 | `scripts/provenance.py` | Git-based author/test responsibility matrix |
-| `scripts/run_adversary.sh` | Invoke a different model's CLI with the adversary prompt and independence guard |
+| `scripts/run_adversary.sh` | Invoke a different model's CLI with the adversary prompt and independence guard; claude's file-edit tools are limited to `adversarial/` (Bash is unrestricted; the integrity check detects edits); opt-in `ADVERSARY_WRAPPER` (e.g. a container) prefixes the command; records CLI version and checks post-run that nothing outside `adversarial/` changed (exit 5) |
 | `scripts/test_smells.py` | Heuristic weak-oracle scan across Python, JS/TS, Go, Java, Rust, C# tests |
 | `scripts/gen_malformed.py` | Deterministic malformed-input corpus generator |
 | `scripts/quick_mutants.py` | Dependency-free mutation check for Python sources |
-| `scripts/report_builder.py` | Validate findings JSON and render REPORT.md |
+| `scripts/report_builder.py` | Validate findings JSON and render REPORT.md; `--verify` re-runs each `reproduction.command` (must exit non-zero while the defect is present, or set `expect_exit`) and embeds the evidence |
 
 All scripts are standard-library only (Python 3.9+, bash) and print `--help`.
+
+## Limitations and threat model
+
+- Provenance from git is a heuristic (trailers, author names), not proof of who wrote what.
+- Adversary independence rests on the declared agent/model, not on cryptographic proof. Multi-provider CLIs without `--model` are recorded as `unverified-provider`.
+- The target code and spec are sent to the chosen provider. Do not use this on code you may not share; keep secrets (`.env`, keys) out of the tree or the scope.
+- Test and fuzz commands run with the user's permissions and are meant for code the user owns. For untrusted trees, set `ADVERSARY_WRAPPER` to a container whose egress is limited to the provider API (no network only for local models), with the credentials passed in. `--verify` runs the adversary-written `reproduction.command`s on the host: review them first.
+- The corpus generators are not fuzzing engines; the harness is built by the agent.
+- The post-run integrity check detects edits outside `adversarial/`; it does not prevent them. `gemini`, `copilot` and `aider` auto-approve tools, so prefer codex or a wrapper.
 
 ## References
 

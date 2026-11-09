@@ -52,8 +52,9 @@ is not what an audit needs.
 - **Survived** mutant that is genuinely **equivalent** (same behavior, e.g. `i += 1` vs
   `i = i + 1`, or a mutation in dead code): exclude it from the score and say so. Do not
   pad the findings with equivalents.
-- **Timeout** mutants: usually an infinite loop introduced by the mutant, counted as killed
-  by most tools; mention the count.
+- **Timeout** mutants: usually an infinite loop introduced by the mutant, counted as detected
+  by most tools (`quick_mutants.py` reports `killed`, `timeout` and `detected` = both; since 1.1.0 `killed` excludes timeouts, so use `detected` for the score);
+  mention the count.
 - **Killed only by a smelly test**: if the killing test is itself a tautology (see
   `test-smells.md`), the kill is accidental. Note it.
 

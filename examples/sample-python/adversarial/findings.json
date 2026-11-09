@@ -33,7 +33,7 @@
         "input": {
           "user_id": 42
         },
-        "command": "PYTHONPATH=src python3 -c \"from pagination import lookup_user; print(lookup_user(42), lookup_user(43))\""
+        "command": "PYTHONPATH=src python3 -c \"from pagination import lookup_user; assert lookup_user(42) == 'user-42'\""
       },
       "expected": "user-42 user-43 (uniform behavior)",
       "actual": "alice user-43",
@@ -57,7 +57,8 @@
           "page": 2,
           "size": 2
         },
-        "command": "PYTHONPATH=src python3 -c \"from pagination import paginate; print(paginate([1,2], 2, 2))\""
+        "command": "PYTHONPATH=src python3 -c \"from pagination import paginate; paginate([1,2], 2, 2)\" && PYTHONPATH=src python3 ../../adversarial-fuzz-audit/scripts/quick_mutants.py src/pagination.py --test-cmd 'python3 -m pytest -q -x tests/' --kinds relational | grep -q 'pagination.py:12  Gt -> GtE'",
+        "expect_exit": 0
       },
       "expected": "[] and a test that fails if the boundary guard changes",
       "actual": "[] (correct by coincidence). quick_mutants.py: mutant `Gt -> GtE` at line 12 SURVIVED, so the suite has no oracle for this boundary.",
@@ -73,7 +74,8 @@
       "location": "src/pagination.py:8-9",
       "property": "Spec: page < 1 raises ValueError. The suite must fail if that check disappears.",
       "reproduction": {
-        "command": "PYTHONPATH=src python3 scripts/quick_mutants.py src/pagination.py --test-cmd 'python3 -m pytest -q -x tests/' --kinds raise,relational"
+        "command": "PYTHONPATH=src python3 ../../adversarial-fuzz-audit/scripts/quick_mutants.py src/pagination.py --test-cmd 'python3 -m pytest -q -x tests/' --kinds raise | grep -q 'SURVIVED  pagination.py:9  remove raise'",
+        "expect_exit": 0
       },
       "expected": "mutant 'remove raise' at line 9 killed",
       "actual": "SURVIVED; with the raise removed, paginate([1,2,3], 0, 2) returns [3] (negative slice start) and no test notices",

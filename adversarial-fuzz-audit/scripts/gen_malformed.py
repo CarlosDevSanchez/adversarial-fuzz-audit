@@ -7,7 +7,7 @@ harness in any language can replay it. Binary payloads are base64-encoded with
 same files and a finding can be reproduced by file name. Standard library only.
 
 Usage:
-    gen_malformed.py --kind all --out adversarial/05-fuzz/corpus [--seed 1337] [--random 200] [--max-size 1048576]
+    gen_malformed.py --kind all --out adversarial/05-fuzz/corpus [--seed 1337] [--max-size 1048576]
 
 Kinds: string number json bytes csv url path datetime identifier all
 """
